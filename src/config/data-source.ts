@@ -1,5 +1,7 @@
+import "reflect-metadata"
 import { DataSource } from "typeorm"
-
+import { User } from "../entities/User"
+import { Vehicle } from "../entities/Vehicle";
 export const AppDataSource = new DataSource({
     type: "postgres",
     host: "localhost",
@@ -7,9 +9,13 @@ export const AppDataSource = new DataSource({
     username: "postgres",
     password: "acm1ptardo",
     database: "demo_typeorm",
+    // dropSchema:true, //Hace que se vacien las bases de datos
     synchronize: true,
-    logging: true, 
-    entities: [],
+    logging: false, 
+    entities: [User,Vehicle],
     subscribers: [],
     migrations: [],
 })
+
+export const userModel = AppDataSource.getRepository(User);
+export const vehicleModel = AppDataSource.getRepository(Vehicle);

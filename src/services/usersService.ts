@@ -1,38 +1,30 @@
 import IUser from "../interfaces/IUser";
 import UserDto from "../dto/UserDto";
+import { userModel } from "../config/data-source";
+import { User } from "../entities/User";
 
-let users: IUser[] = [
-  {
-    id: 1,
-    name: "Carlos",
-    email: "carlos_01_98@hotmail.com",
-    active: true,
-  },
-];
-
-let id: number = 1;
-
-export const createUserService = async (userData: UserDto): Promise<IUser> => {
+export const createUserService = async (userData: UserDto) => {
   //!un async SIEMPRE RETORNA una PROMESA que se resuelve a un determinado valor, en este caso IUser
-  //Recibir datos del usuario
-  //Crear nuevo usuario
-  //Incluir nuevo usuario dentro de arreglo users
-  //retronar el objeto creado
-  const newUser: IUser = {
-    id,
-    name: userData.name,
-    email: userData.email,
-    active: userData.active,
-  };
-  users.push(newUser);
-  id++;
-  return newUser;
+  const user: User = await userModel.create(userData);
+  await userModel.save(user);
+  return user;
 };
-export const getUserService = async (): Promise<IUser[]> => {
+export const getUserService = async (): Promise<User[]> => {
+  const users: User[] = await userModel.find({
+    relations: {
+      vehicles: true,
+    },
+  });
   return users;
 };
-export const deleteUserService = async (id: number): Promise<void> => {
-  users = users.filter((user: IUser) => {
-    return user.id !== id;
-  });
+export const getUsersByIdService = async (
+  ide: number
+): Promise<User | null> => {
+  const user = await userModel.findOneBy({ id: ide });
+  return user;
+};
+
+export const deleteUserService = async (id: number) => {
+  const user = await userModel.delete(id);
+  return user;
 };
