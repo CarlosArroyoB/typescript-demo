@@ -1,8 +1,10 @@
-import { userModel, vehicleModel } from "../config/data-source";
+import { AppDataSource } from "../config/data-source";
+import VehicleRepository from "../repositories/VehicleRepository";
+import UserRepository from "../repositories/UserRepository";
 import VehiclesDto from "../dto/VehiclesDto";
 import { Vehicle } from "../entities/Vehicle";
 export const getVehicleService = async () => {
-  const vehicle: Vehicle[] = await vehicleModel.find({
+  const vehicle: Vehicle[] = await VehicleRepository.find({
     relations: {
       user: true,
     },
@@ -11,20 +13,28 @@ export const getVehicleService = async () => {
 };
 
 export const createVehicleService = async (VehiclesData: VehiclesDto) => {
-  const newVehicle = await vehicleModel.create(VehiclesData);
-  await vehicleModel.save(newVehicle);
-  //Para este punto el vehiculo ya esta creado, pero me falta indicar quien es su dueño
-  const userId = await userModel.findOneBy({ id: VehiclesData.userId });
-  // if(userId){
-  //     userId.vehicle = vehicle;
-  // await userModel.save(userId);
-  // }else{
-  //     throw Error ("Usuario inexistente")
-  // }
-  if (userId) {
-    newVehicle.user = userId;
-    vehicleModel.save(newVehicle);
-  }
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+  try {
+    queryRunner.startTransaction();
 
-  return newVehicle;
+    const newVehicle = await VehicleRepository.create(VehiclesData);
+    await queryRunner.manager.save(newVehicle);
+
+    const user = await UserRepository.findOneBy({ id: VehiclesData.userId });
+    if (!user)
+      throw Error("Usuario inexistente. No se ha podido crear el vehículo");
+
+    newVehicle.user = user;
+    queryRunner.manager.save(newVehicle);
+
+    await queryRunner.commitTransaction();
+
+    return newVehicle;
+  } catch (error) {
+    await queryRunner.rollbackTransaction();
+    throw Error("Usuario inexistente");
+  } finally {
+    queryRunner.release();
+  }
 };
